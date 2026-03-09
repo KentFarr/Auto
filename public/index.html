@@ -452,6 +452,35 @@
       .small {
         font-size: 0.75rem;
       }
+
+      .scan-progress {
+        margin-bottom: 0.4rem;
+        display: none;
+        align-items: center;
+        gap: 0.4rem;
+      }
+
+      .scan-progress-label {
+        font-size: 0.74rem;
+        color: var(--text-muted);
+      }
+
+      .scan-progress-bar {
+        flex: 1;
+        height: 3px;
+        border-radius: 999px;
+        background: rgba(30, 64, 175, 0.45);
+        overflow: hidden;
+        position: relative;
+      }
+
+      .scan-progress-inner {
+        position: absolute;
+        inset: 0;
+        width: 35%;
+        background: linear-gradient(90deg, transparent, #a5b4fc, transparent);
+        animation: loading-slide 1s infinite;
+      }
     </style>
   </head>
   <body>
@@ -474,6 +503,10 @@
             <span>▶</span>
             <span>Run ad-hoc scan</span>
           </button>
+          <button id="triggerQuickScanBtn" class="secondary">
+            <span>⏱</span>
+            <span>Quick localhost scan</span>
+          </button>
           <button id="generateReportBtn" class="secondary">
             <span>⚡</span>
             <span>Generate report from latest scan</span>
@@ -488,6 +521,12 @@
               <span id="scansMeta" class="muted small"></span>
             </div>
             <div class="card-body">
+              <div id="scanProgress" class="scan-progress">
+                <span class="scan-progress-label mono">Scan in progress…</span>
+                <div class="scan-progress-bar">
+                  <div class="scan-progress-inner"></div>
+                </div>
+              </div>
               <div class="table-container">
                 <div class="table-scroll">
                   <table>
@@ -564,11 +603,18 @@
       const reportContent = document.getElementById("reportContent");
       const reportsLoading = document.getElementById("reportsLoading");
       const triggerScanBtn = document.getElementById("triggerScanBtn");
+      const triggerQuickScanBtn = document.getElementById("triggerQuickScanBtn");
       const generateReportBtn = document.getElementById("generateReportBtn");
+      const scanProgress = document.getElementById("scanProgress");
 
       function setStatus(text) {
         if (!statusEl) return;
         statusEl.textContent = text;
+      }
+
+      function setScanRunning(isRunning) {
+        if (!scanProgress) return;
+        scanProgress.style.display = isRunning ? "flex" : "none";
       }
 
       function formatDate(iso) {
@@ -839,6 +885,7 @@
       async function triggerScan() {
         try {
           triggerScanBtn.disabled = true;
+          setScanRunning(true);
           setStatus("Running ad-hoc scan…");
           await fetchJson("/api/scans/trigger", {
             method: "POST",
@@ -853,6 +900,32 @@
           setStatus("Scan failed. See server logs.");
         } finally {
           triggerScanBtn.disabled = false;
+          setScanRunning(false);
+        }
+      }
+
+      async function triggerQuickScan() {
+        try {
+          if (triggerQuickScanBtn) triggerQuickScanBtn.disabled = true;
+          setScanRunning(true);
+          setStatus("Running quick localhost scan…");
+          await fetchJson("/api/scans/trigger", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              target: "127.0.0.1",
+              flags: "-T4 -sV -Pn --top-ports 50",
+            }),
+          });
+          setStatus("Quick scan completed. Refreshing data…");
+          await Promise.all([loadScans(), loadHosts()]);
+          setStatus("Idle");
+        } catch (err) {
+          console.error(err);
+          setStatus("Quick scan failed. See server logs.");
+        } finally {
+          if (triggerQuickScanBtn) triggerQuickScanBtn.disabled = false;
+          setScanRunning(false);
         }
       }
 
@@ -874,6 +947,10 @@
 
       triggerScanBtn?.addEventListener("click", () => {
         triggerScan();
+      });
+
+      triggerQuickScanBtn?.addEventListener("click", () => {
+        triggerQuickScan();
       });
 
       generateReportBtn?.addEventListener("click", () => {
