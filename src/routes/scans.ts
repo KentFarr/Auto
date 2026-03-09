@@ -6,6 +6,45 @@ import { processScanResults } from "../services/scanProcessor";
 
 const router = Router();
 
+router.get("/", (_req, res) => {
+  try {
+    const db = getDb();
+    const scans = db
+      .prepare(
+        `SELECT
+           sr.id,
+           sr.started_at,
+           sr.finished_at,
+           sr.status,
+           t.name AS target_name,
+           t.cidr_or_host,
+           sp.name AS profile_name,
+           (
+             SELECT COUNT(DISTINCT h.id)
+             FROM hosts h
+             WHERE h.scan_run_id = sr.id
+           ) AS host_count,
+           (
+             SELECT COUNT(DISTINCT p.id)
+             FROM hosts h2
+             JOIN ports p ON p.host_id = h2.id AND p.state = 'open'
+             WHERE h2.scan_run_id = sr.id
+           ) AS open_port_count
+         FROM scan_runs sr
+         JOIN targets t ON t.id = sr.target_id
+         JOIN scan_profiles sp ON sp.id = sr.profile_id
+         ORDER BY sr.id DESC
+         LIMIT 50`
+      )
+      .all();
+    res.json(scans);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(err);
+    res.status(500).json({ error: "Failed to list scans" });
+  }
+});
+
 router.post("/trigger", async (req, res) => {
   try {
     const { target = config.defaultCidr, flags = "-T3 -sV -Pn" } = req.body || {};

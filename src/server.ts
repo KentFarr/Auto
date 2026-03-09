@@ -4,6 +4,7 @@ import path from "path";
 import { config } from "./config";
 import scansRouter from "./routes/scans";
 import hostsRouter from "./routes/hosts";
+import reportsRouter from "./routes/reports";
 import { getDb } from "./db";
 import { startScheduler } from "./services/scheduler";
 
@@ -19,15 +20,14 @@ app.get("/health", (_req, res) => {
 // API routes
 app.use("/api/scans", scansRouter);
 app.use("/api/hosts", hostsRouter);
+app.use("/api/reports", reportsRouter);
 
-// Temporary root page until UI is added
+// Root serves the minimal UI
 app.get("/", (_req, res) => {
-  res.send(
-    `<html><body><h1>Network Security Auto Scanner</h1><p>API is running. Check <code>/health</code>.</p></body></html>`
-  );
+  res.sendFile(path.join(__dirname, "..", "public", "index.html"));
 });
 
-// Static assets (for future minimal UI)
+// Static assets (for UI)
 app.use(
   "/static",
   express.static(path.join(__dirname, "..", "public"), {

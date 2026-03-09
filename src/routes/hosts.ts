@@ -8,10 +8,20 @@ router.get("/", (_req, res) => {
     const db = getDb();
     const hosts = db
       .prepare(
-        `SELECT h.id, h.ip, h.hostname, h.os_guess, h.is_up,
-                COUNT(p.id) AS open_ports
+        `SELECT
+           h.id,
+           h.ip,
+           h.hostname,
+           h.os_guess,
+           h.is_up,
+           COUNT(DISTINCT p.id) AS open_ports,
+           COUNT(DISTINCT vf.id) AS vulnerability_count
          FROM hosts h
-         LEFT JOIN ports p ON p.host_id = h.id AND p.state = 'open'
+         LEFT JOIN ports p
+           ON p.host_id = h.id
+          AND p.state = 'open'
+         LEFT JOIN vulnerability_findings vf
+           ON vf.port_id = p.id
          GROUP BY h.id
          ORDER BY h.id DESC
          LIMIT 200`

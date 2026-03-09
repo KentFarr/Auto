@@ -9,4 +9,10 @@ export const config = {
   scanOutputDir: process.env.SCAN_OUTPUT_DIR || "data/scans",
   defaultCidr: process.env.SCAN_DEFAULT_CIDR || "192.168.1.0/24",
   openAiApiKey: process.env.OPENAI_API_KEY || "",
+  claudeApiKey:
+    process.env.CLAUDE_API_KEY ||
+    process.env.ANTHROPIC_API_KEY ||
+    "",
+  claudeModel:
+    process.env.CLAUDE_MODEL || "claude-3-sonnet-20240229",
 };

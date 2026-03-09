@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Network Security Auto Scanner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: dark light;
+        --bg: #050814;
+        --bg-elevated: #0d1020;
+        --accent: #4f46e5;
+        --accent-soft: rgba(79, 70, 229, 0.1);
+        --accent-strong: rgba(79, 70, 229, 0.3);
+        --border-subtle: rgba(148, 163, 184, 0.3);
+        --text-main: #e5e7eb;
+        --text-muted: #9ca3af;
+        --danger: #ef4444;
+        --danger-soft: rgba(239, 68, 68, 0.12);
+        --success: #22c55e;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+          "Segoe UI", sans-serif;
+        background: radial-gradient(circle at top left, #111827 0, #020617 45%, #000 100%);
+        color: var(--text-main);
+      }
+
+      .page {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-subtle);
+        backdrop-filter: blur(22px);
+        background: linear-gradient(
+          to right,
+          rgba(15, 23, 42, 0.9),
+          rgba(30, 64, 175, 0.7)
+        );
+        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.8);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      header .title {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+      }
+
+      .logo {
+        width: 38px;
+        height: 38px;
+        border-radius: 16px;
+        background: radial-gradient(circle at 30% 20%, #a855f7, #4f46e5 45%, #0ea5e9 100%);
+        box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.3),
+          0 16px 40px rgba(15, 23, 42, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 1.1rem;
+      }
+
+      .title-text-main {
+        font-size: 1.3rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+
+      .title-text-sub {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+
+      .badge {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 0.17rem 0.5rem;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        color: #e5e7eb;
+      }
+
+      main {
+        flex: 1;
+        padding: 1.5rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        width: 100%;
+      }
+
+      .actions-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+        margin-bottom: 1.25rem;
+      }
+
+      button,
+      .button {
+        border-radius: 999px;
+        border: 1px solid transparent;
+        padding: 0.45rem 1rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        background: linear-gradient(135deg, #4f46e5, #6366f1);
+        color: white;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        box-shadow: 0 12px 30px rgba(79, 70, 229, 0.45);
+        transition: transform 0.12s ease, box-shadow 0.12s ease,
+          background 0.12s ease, border-color 0.12s ease;
+        white-space: nowrap;
+      }
+
+      button.secondary {
+        background: rgba(15, 23, 42, 0.9);
+        border-color: rgba(148, 163, 184, 0.5);
+        color: var(--text-main);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.8);
+      }
+
+      button:hover,
+      .button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 16px 38px rgba(79, 70, 229, 0.6);
+      }
+
+      button.secondary:hover {
+        box-shadow: 0 14px 32px rgba(15, 23, 42, 0.9);
+        border-color: rgba(129, 140, 248, 0.8);
+      }
+
+      button:disabled {
+        opacity: 0.65;
+        cursor: default;
+        box-shadow: none;
+      }
+
+      .pill {
+        border-radius: 999px;
+        padding: 0.2rem 0.55rem;
+        font-size: 0.7rem;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        background: rgba(15, 23, 42, 0.8);
+        color: var(--text-muted);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 2fr 2fr 2fr;
+        gap: 1rem;
+      }
+
+      @media (max-width: 1024px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        background: radial-gradient(circle at top left, #111827 0, #020617 48%, #020617 100%);
+        border-radius: 1rem;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        box-shadow: 0 18px 42px rgba(15, 23, 42, 0.95);
+        padding: 0.9rem 1rem 0.9rem;
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 0.4rem;
+        gap: 0.5rem;
+      }
+
+      .card-header h2 {
+        font-size: 0.95rem;
+        margin: 0;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        color: #e5e7eb;
+      }
+
+      .card-header span {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+
+      .card-body {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .table-container {
+        border-radius: 0.75rem;
+        border: 1px solid rgba(31, 41, 55, 0.9);
+        background: radial-gradient(circle at top left, #0b1120 0, #020617 65%);
+        overflow: hidden;
+        position: relative;
+      }
+
+      .table-scroll {
+        max-height: 260px;
+        overflow: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8rem;
+      }
+
+      thead {
+        background: linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(30, 64, 175, 0.75));
+      }
+
+      th,
+      td {
+        padding: 0.45rem 0.6rem;
+        text-align: left;
+        white-space: nowrap;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        border-bottom: 1px solid rgba(31, 41, 55, 0.9);
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-size: 0.72rem;
+        color: #e5e7eb;
+      }
+
+      tbody tr:nth-child(even) {
+        background-color: rgba(15, 23, 42, 0.9);
+      }
+
+      tbody tr:nth-child(odd) {
+        background-color: rgba(15, 23, 42, 0.7);
+      }
+
+      tbody tr:hover {
+        background-color: rgba(30, 64, 175, 0.6);
+      }
+
+      td {
+        border-top: 1px solid rgba(31, 41, 55, 0.9);
+        color: var(--text-main);
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.1rem 0.5rem;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        border: 1px solid rgba(148, 163, 184, 0.5);
+      }
+
+      .status-running {
+        background: rgba(59, 130, 246, 0.15);
+        border-color: rgba(59, 130, 246, 0.8);
+      }
+
+      .status-completed {
+        background: rgba(34, 197, 94, 0.13);
+        border-color: rgba(34, 197, 94, 0.8);
+      }
+
+      .status-failed {
+        background: var(--danger-soft);
+        border-color: rgba(248, 113, 113, 0.9);
+      }
+
+      .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+      }
+
+      .dot-running {
+        background: #60a5fa;
+      }
+
+      .dot-completed {
+        background: var(--success);
+      }
+
+      .dot-failed {
+        background: var(--danger);
+      }
+
+      .severity-pill {
+        border-radius: 999px;
+        padding: 0.05rem 0.4rem;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        border: 1px solid rgba(148, 163, 184, 0.5);
+      }
+
+      .severity-critical {
+        background: var(--danger-soft);
+        color: #fee2e2;
+        border-color: rgba(239, 68, 68, 0.9);
+      }
+
+      .severity-high {
+        background: rgba(248, 113, 113, 0.16);
+        color: #fecaca;
+        border-color: rgba(248, 113, 113, 0.9);
+      }
+
+      .severity-medium {
+        background: rgba(245, 158, 11, 0.16);
+        color: #fed7aa;
+        border-color: rgba(245, 158, 11, 0.9);
+      }
+
+      .severity-low {
+        background: rgba(34, 197, 94, 0.12);
+        color: #bbf7d0;
+        border-color: rgba(74, 222, 128, 0.95);
+      }
+
+      .muted {
+        color: var(--text-muted);
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+          "Courier New", monospace;
+      }
+
+      .reports-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        padding: 0.55rem 0.7rem 0.7rem;
+      }
+
+      .report-row {
+        border-radius: 0.7rem;
+        padding: 0.45rem 0.55rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.1rem;
+        cursor: pointer;
+        border: 1px solid rgba(31, 41, 55, 0.9);
+        background: radial-gradient(circle at top left, #020617 0, #020617 40%, #020617 100%);
+      }
+
+      .report-row:hover {
+        border-color: rgba(129, 140, 248, 0.9);
+        background: radial-gradient(circle at top left, #1d2438 0, #020617 55%);
+      }
+
+      .report-row-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 0.35rem;
+      }
+
+      .report-row-title {
+        font-size: 0.8rem;
+        font-weight: 500;
+      }
+
+      .report-row-meta {
+        font-size: 0.7rem;
+      }
+
+      .report-content {
+        flex: 1;
+        border-radius: 0.75rem;
+        border: 1px solid rgba(31, 41, 55, 0.9);
+        background: radial-gradient(circle at top left, #020617 0, #020617 40%, #020617 100%);
+        padding: 0.6rem 0.8rem;
+        overflow: auto;
+        max-height: 260px;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        white-space: pre-wrap;
+      }
+
+      .report-empty {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        padding: 0.5rem 0.2rem;
+      }
+
+      .loading-bar {
+        height: 2px;
+        width: 100%;
+        position: relative;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(30, 64, 175, 0.4);
+        margin-top: 0.4rem;
+      }
+
+      .loading-bar-inner {
+        position: absolute;
+        left: -40%;
+        top: 0;
+        bottom: 0;
+        width: 40%;
+        background: linear-gradient(90deg, transparent, #a5b4fc, transparent);
+        animation: loading-slide 1.2s infinite;
+      }
+
+      @keyframes loading-slide {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(260%);
+        }
+      }
+
+      .small {
+        font-size: 0.75rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <div class="title">
+          <div class="logo">NS</div>
+          <div>
+            <div class="title-text-main">Network Security Auto Scanner</div>
+            <div class="title-text-sub">
+              Lightweight dashboard for scans, vulnerabilities &amp; LLM reports
+            </div>
+          </div>
+          <span class="badge">Minimal UI</span>
+        </div>
+      </header>
+      <main>
+        <div class="actions-row">
+          <button id="triggerScanBtn">
+            <span>▶</span>
+            <span>Run ad-hoc scan</span>
+          </button>
+          <button id="generateReportBtn" class="secondary">
+            <span>⚡</span>
+            <span>Generate report from latest scan</span>
+          </button>
+          <span class="pill mono small" id="statusText">Idle</span>
+        </div>
+
+        <div class="grid">
+          <section class="card">
+            <div class="card-header">
+              <h2>Scans</h2>
+              <span id="scansMeta" class="muted small"></span>
+            </div>
+            <div class="card-body">
+              <div class="table-container">
+                <div class="table-scroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Status</th>
+                        <th>Target</th>
+                        <th>Profile</th>
+                        <th>Started</th>
+                        <th>Finished</th>
+                        <th>Hosts</th>
+                        <th>Open ports</th>
+                      </tr>
+                    </thead>
+                    <tbody id="scansTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-header">
+              <h2>Hosts &amp; Vulnerabilities</h2>
+              <span id="hostsMeta" class="muted small"></span>
+            </div>
+            <div class="card-body">
+              <div class="table-container">
+                <div class="table-scroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>IP / Host</th>
+                        <th>OS</th>
+                        <th>Status</th>
+                        <th>Open ports</th>
+                        <th>Vulns</th>
+                      </tr>
+                    </thead>
+                    <tbody id="hostsTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-header">
+              <h2>LLM Reports</h2>
+              <span id="reportsMeta" class="muted small"></span>
+            </div>
+            <div class="card-body">
+              <div class="reports-list" id="reportsList"></div>
+              <div id="reportsLoading" hidden class="loading-bar">
+                <div class="loading-bar-inner"></div>
+              </div>
+              <div id="reportContent" class="report-content report-empty">
+                Select a report to view its content.
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+    <script>
+      const statusEl = document.getElementById("statusText");
+      const scansMetaEl = document.getElementById("scansMeta");
+      const hostsMetaEl = document.getElementById("hostsMeta");
+      const reportsMetaEl = document.getElementById("reportsMeta");
+      const scansTableBody = document.getElementById("scansTableBody");
+      const hostsTableBody = document.getElementById("hostsTableBody");
+      const reportsList = document.getElementById("reportsList");
+      const reportContent = document.getElementById("reportContent");
+      const reportsLoading = document.getElementById("reportsLoading");
+      const triggerScanBtn = document.getElementById("triggerScanBtn");
+      const generateReportBtn = document.getElementById("generateReportBtn");
+
+      function setStatus(text) {
+        if (!statusEl) return;
+        statusEl.textContent = text;
+      }
+
+      function formatDate(iso) {
+        if (!iso) return "–";
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return iso;
+        return d.toLocaleString(undefined, {
+          month: "short",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+
+      function createStatusCell(status) {
+        const span = document.createElement("span");
+        span.className = "status-pill";
+        const dot = document.createElement("span");
+        dot.className = "dot";
+        const text = document.createElement("span");
+        text.textContent = status || "unknown";
+        const lowered = (status || "").toLowerCase();
+        if (lowered === "completed") {
+          span.classList.add("status-completed");
+          dot.classList.add("dot-completed");
+        } else if (lowered === "running") {
+          span.classList.add("status-running");
+          dot.classList.add("dot-running");
+        } else if (lowered === "failed") {
+          span.classList.add("status-failed");
+          dot.classList.add("dot-failed");
+        } else {
+          dot.style.background = "#e5e7eb";
+        }
+        span.appendChild(dot);
+        span.appendChild(text);
+        return span;
+      }
+
+      async function fetchJson(url, options) {
+        const res = await fetch(url, options);
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || res.statusText);
+        }
+        const ct = res.headers.get("content-type") || "";
+        if (ct.includes("application/json")) {
+          return res.json();
+        }
+        return null;
+      }
+
+      async function loadScans() {
+        try {
+          const scans = await fetchJson("/api/scans");
+          scansTableBody.innerHTML = "";
+          if (!Array.isArray(scans) || scans.length === 0) {
+            const tr = document.createElement("tr");
+            const td = document.createElement("td");
+            td.colSpan = 8;
+            td.className = "muted";
+            td.textContent = "No scans yet.";
+            tr.appendChild(td);
+            scansTableBody.appendChild(tr);
+          } else {
+            scans.forEach((scan) => {
+              const tr = document.createElement("tr");
+              const cells = [
+                scan.id,
+                null,
+                `${scan.target_name || "target"} (${scan.cidr_or_host || ""})`,
+                scan.profile_name || "profile",
+                formatDate(scan.started_at),
+                formatDate(scan.finished_at),
+                scan.host_count ?? "0",
+                scan.open_port_count ?? "0",
+              ];
+              cells.forEach((val, idx) => {
+                const td = document.createElement("td");
+                if (idx === 1) {
+                  td.appendChild(createStatusCell(scan.status));
+                } else {
+                  td.textContent = val == null ? "–" : String(val);
+                }
+                tr.appendChild(td);
+              });
+              scansTableBody.appendChild(tr);
+            });
+          }
+          scansMetaEl.textContent = Array.isArray(scans)
+            ? `${scans.length} recent scan${scans.length === 1 ? "" : "s"}`
+            : "";
+        } catch (err) {
+          console.error(err);
+          scansTableBody.innerHTML = "";
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 8;
+          td.className = "muted";
+          td.textContent = "Failed to load scans.";
+          tr.appendChild(td);
+          scansTableBody.appendChild(tr);
+        }
+      }
+
+      async function loadHosts() {
+        try {
+          const hosts = await fetchJson("/api/hosts");
+          hostsTableBody.innerHTML = "";
+          if (!Array.isArray(hosts) || hosts.length === 0) {
+            const tr = document.createElement("tr");
+            const td = document.createElement("td");
+            td.colSpan = 5;
+            td.className = "muted";
+            td.textContent = "No hosts discovered yet.";
+            tr.appendChild(td);
+            hostsTableBody.appendChild(tr);
+          } else {
+            hosts.forEach((host) => {
+              const tr = document.createElement("tr");
+              const status = host.is_up ? "Up" : "Down";
+              const vulns = host.vulnerability_count ?? 0;
+              const cells = [
+                `${host.ip} ${host.hostname ? "· " + host.hostname : ""}`,
+                host.os_guess || "Unknown",
+                status,
+                host.open_ports ?? 0,
+                vulns,
+              ];
+              cells.forEach((val, idx) => {
+                const td = document.createElement("td");
+                if (idx === 2) {
+                  td.textContent = String(val);
+                  td.style.color = host.is_up ? "#22c55e" : "#f97316";
+                } else if (idx === 4) {
+                  const num = Number(val) || 0;
+                  if (num === 0) {
+                    td.textContent = "0";
+                    td.className = "muted";
+                  } else {
+                    const pill = document.createElement("span");
+                    pill.className = "severity-pill";
+                    pill.textContent = `${num} issue${num === 1 ? "" : "s"}`;
+                    if (num >= 10) {
+                      pill.classList.add("severity-critical");
+                    } else if (num >= 5) {
+                      pill.classList.add("severity-high");
+                    } else if (num >= 2) {
+                      pill.classList.add("severity-medium");
+                    } else {
+                      pill.classList.add("severity-low");
+                    }
+                    td.appendChild(pill);
+                  }
+                } else {
+                  td.textContent = val == null ? "–" : String(val);
+                }
+                tr.appendChild(td);
+              });
+              hostsTableBody.appendChild(tr);
+            });
+          }
+          hostsMetaEl.textContent = Array.isArray(hosts)
+            ? `${hosts.length} host${hosts.length === 1 ? "" : "s"}`
+            : "";
+        } catch (err) {
+          console.error(err);
+          hostsTableBody.innerHTML = "";
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 5;
+          td.className = "muted";
+          td.textContent = "Failed to load hosts.";
+          tr.appendChild(td);
+          hostsTableBody.appendChild(tr);
+        }
+      }
+
+      async function loadReports(selectedId) {
+        try {
+          reportsLoading.hidden = false;
+          const reports = await fetchJson("/api/reports");
+          reportsList.innerHTML = "";
+          reportContent.textContent = "Select a report to view its content.";
+          reportContent.classList.add("report-empty");
+
+          if (!Array.isArray(reports) || reports.length === 0) {
+            const empty = document.createElement("div");
+            empty.className = "report-empty";
+            empty.textContent = "No reports generated yet.";
+            reportsList.appendChild(empty);
+            reportsMetaEl.textContent = "0 reports";
+            return;
+          }
+
+          let activeId = selectedId;
+          if (!activeId) {
+            activeId = reports[0].id;
+          }
+
+          reports.forEach((report) => {
+            const row = document.createElement("div");
+            row.className = "report-row";
+            row.dataset.id = report.id;
+            if (report.id === activeId) {
+              row.style.borderColor = "rgba(129, 140, 248, 0.9)";
+            }
+
+            const header = document.createElement("div");
+            header.className = "report-row-header";
+
+            const title = document.createElement("div");
+            title.className = "report-row-title";
+            title.textContent = report.scope || `Report #${report.id}`;
+
+            const meta = document.createElement("div");
+            meta.className = "report-row-meta muted";
+            meta.textContent = `${formatDate(report.generated_at)} · ${
+              report.llm_model || "LLM"
+            }`;
+
+            header.appendChild(title);
+            header.appendChild(meta);
+            row.appendChild(header);
+
+            row.addEventListener("click", () => {
+              loadReportContent(report.id);
+            });
+
+            reportsList.appendChild(row);
+          });
+
+          reportsMetaEl.textContent = `${reports.length} report${
+            reports.length === 1 ? "" : "s"
+          }`;
+
+          if (activeId) {
+            await loadReportContent(activeId);
+          }
+        } catch (err) {
+          console.error(err);
+          reportsList.innerHTML = "";
+          const empty = document.createElement("div");
+          empty.className = "report-empty";
+          empty.textContent = "Failed to load reports.";
+          reportsList.appendChild(empty);
+          reportsMetaEl.textContent = "";
+        } finally {
+          reportsLoading.hidden = true;
+        }
+      }
+
+      async function loadReportContent(id) {
+        try {
+          reportsLoading.hidden = false;
+          const report = await fetchJson(`/api/reports/${id}`);
+          reportContent.textContent = report?.content || "(Report has no content)";
+          reportContent.classList.remove("report-empty");
+        } catch (err) {
+          console.error(err);
+          reportContent.textContent = "Failed to load report content.";
+          reportContent.classList.add("report-empty");
+        } finally {
+          reportsLoading.hidden = true;
+        }
+      }
+
+      async function triggerScan() {
+        try {
+          triggerScanBtn.disabled = true;
+          setStatus("Running ad-hoc scan…");
+          await fetchJson("/api/scans/trigger", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({}),
+          });
+          setStatus("Scan completed. Refreshing data…");
+          await Promise.all([loadScans(), loadHosts()]);
+          setStatus("Idle");
+        } catch (err) {
+          console.error(err);
+          setStatus("Scan failed. See server logs.");
+        } finally {
+          triggerScanBtn.disabled = false;
+        }
+      }
+
+      async function generateReport() {
+        try {
+          generateReportBtn.disabled = true;
+          setStatus("Generating report from latest scan…");
+          await fetchJson("/api/reports/generate", { method: "POST" });
+          setStatus("Report generated. Refreshing…");
+          await loadReports();
+          setStatus("Idle");
+        } catch (err) {
+          console.error(err);
+          setStatus("Report generation failed. See server logs.");
+        } finally {
+          generateReportBtn.disabled = false;
+        }
+      }
+
+      triggerScanBtn?.addEventListener("click", () => {
+        triggerScan();
+      });
+
+      generateReportBtn?.addEventListener("click", () => {
+        generateReport();
+      });
+
+      (async function init() {
+        setStatus("Loading data…");
+        await Promise.all([loadScans(), loadHosts(), loadReports()]);
+        setStatus("Idle");
+
+        // Periodic lightweight refresh for scans/hosts
+        setInterval(() => {
+          loadScans();
+          loadHosts();
+        }, 30000);
+      })();
+    </script>
+  </body>
+</html>
+
