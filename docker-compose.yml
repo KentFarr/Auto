@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    container_name: network-security-autoscanner
+    environment:
+      - PORT=3000
+      - LOG_LEVEL=info
+      - DB_PATH=/data/db.sqlite
+      - SCAN_OUTPUT_DIR=/data/scans
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - app-data:/data
+    network_mode: host
+    restart: unless-stopped
+
+volumes:
+  app-data:
+    driver: local
+
